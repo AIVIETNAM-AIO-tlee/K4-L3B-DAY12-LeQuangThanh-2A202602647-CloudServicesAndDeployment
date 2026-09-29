@@ -26,11 +26,25 @@ def get_redis_client(url: str | None = None):
     trong process, đúng cái mà CP4 đang tìm cách loại bỏ.
     """
     url = url or get_settings().redis_url
+    if isinstance(url, str):
+        url = url.strip().strip("'\"")
+    if not url:
+        url = "redis://localhost:6379/0"
     if url.startswith("fake://"):
         import fakeredis
 
         return fakeredis.FakeRedis(decode_responses=True)
-    return redis.from_url(url, decode_responses=True)
+    try:
+        return redis.from_url(url, decode_responses=True)
+    except Exception as e:
+        class FailedRedis:
+            def ping(self):
+                raise ConnectionError(f"Failed to connect to Redis at {url!r}: {e}")
+            def __getattr__(self, name):
+                def dummy(*args, **kwargs):
+                    raise ConnectionError(f"Redis unavailable: {url!r}")
+                return dummy
+        return FailedRedis()
 
 
 class ConversationStore:
