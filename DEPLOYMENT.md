@@ -75,23 +75,71 @@ Dán output của các lệnh trên vào đây:
 ```
 # 1. Liveness (GET /health)
 HTTP/1.1 200 OK
-content-type: application/json
+Date: Tue, 29 Sep 2026 07:30:38 GMT
+Content-Type: application/json
+Transfer-Encoding: chunked
+Connection: keep-alive
+cf-cache-status: DYNAMIC
+rndr-id: 605c8988-ab07-4a5e
+Server: cloudflare
+vary: Origin
+vary: Accept-Encoding
+x-render-origin-server: uvicorn
+CF-RAY: a429489b1dcf6dd2-SIN
+alt-svc: h3=":443"; ma=86400
+
 {"status":"ok","service":"day12-agent","version":"1.0.0"}
 
 # 2. Readiness (GET /ready)
 HTTP/1.1 200 OK
-content-type: application/json
+Date: Tue, 29 Sep 2026 07:31:18 GMT
+Content-Type: application/json
+Transfer-Encoding: chunked
+Connection: keep-alive
+cf-cache-status: DYNAMIC
+rndr-id: c4a30fab-904e-4a0b
+Server: cloudflare
+vary: Origin
+vary: Accept-Encoding
+x-render-origin-server: uvicorn
+CF-RAY: a42949979a31449d-SIN
+alt-svc: h3=":443"; ma=86400
+
 {"status":"ready","redis":true}
 
 # 3. Không có API key (POST /ask)
 HTTP/1.1 401 Unauthorized
-content-type: application/json
+Date: Tue, 29 Sep 2026 07:33:27 GMT
+Content-Type: application/json
+Transfer-Encoding: chunked
+Connection: keep-alive
+cf-cache-status: DYNAMIC
+rndr-id: 951a4ab8-d53f-4285
+Server: cloudflare
+vary: Origin
+vary: Accept-Encoding
+x-render-origin-server: uvicorn
+CF-RAY: a4294cbd8f57fd40-SIN
+alt-svc: h3=":443"; ma=86400
+
 {"detail":"invalid or missing API key"}
 
 # 4. Có API key (POST /ask)
 HTTP/1.1 200 OK
-content-type: application/json
-{"answer":"Deploy là quá trình đưa ứng dụng lên máy chủ hạ tầng đám mây để người dùng truy cập.","user_id":"sv-test","history_length":0,"cost_usd":0.00015,"tokens":{"in":12,"out":30}}
+Date: Tue, 29 Sep 2026 07:36:27 GMT
+Content-Type: application/json
+Transfer-Encoding: chunked
+Connection: keep-alive
+cf-cache-status: DYNAMIC
+rndr-id: fee37e79-ec1d-4027
+Server: cloudflare
+vary: Origin
+vary: Accept-Encoding
+x-render-origin-server: uvicorn
+CF-RAY: a429510dbecbcdda-SIN
+alt-svc: h3=":443"; ma=86400
+
+{"answer":"Ngắn gọn: Deploy la gi phụ thuộc vào ba yếu tố — cấu hình qua biến môi trường, health check để orchestrator biết trạng thái, và giới hạn tài nguyên. (Mình đang nhớ 20 lượt trao đổi trước đó.)","user_id":"sv-test","history_length":20,"cost_usd":9.555e-05,"tokens":{"in":449,"out":47}}
 
 # 5. Rate limit (15 requests liên tiếp)
 200 200 200 200 200 200 200 200 200 200 429 429 429 429 429
