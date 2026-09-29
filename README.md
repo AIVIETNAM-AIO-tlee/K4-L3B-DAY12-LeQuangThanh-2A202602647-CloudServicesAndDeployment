@@ -1,4 +1,4 @@
-![CI](https://github.com/<username>/<tên-repo>/actions/workflows/ci.yml/badge.svg)
+![CI](https://github.com/AIVIETNAM-AIO-tlee/K4-L3B-DAY12-LeQuangThanh-2A202602647-CloudServicesAndDeployment/actions/workflows/ci.yml/badge.svg)
 # K4 — Level 3B, Ngày 12: Hạ Tầng Cloud & Deployment (240 phút)
 
 Đưa một AI agent từ `localhost:8000` lên một địa chỉ công khai mà người khác
