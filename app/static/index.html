@@ -1,0 +1,1059 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Day 12 — Cloud AI Agent Console</title>
+  <meta name="description" content="Production-ready Cloud AI Agent dashboard with security, rate limiting, cost guard, and health monitoring." />
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600&family=Outfit:wght@500;600;700;800&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg-primary: #0a0e17;
+      --bg-secondary: #111827;
+      --bg-card: rgba(17, 24, 39, 0.75);
+      --bg-card-hover: rgba(31, 41, 55, 0.85);
+      --border-color: rgba(255, 255, 255, 0.08);
+      --border-focus: rgba(99, 102, 241, 0.5);
+      --text-main: #f8fafc;
+      --text-muted: #94a3b8;
+      --accent-indigo: #6366f1;
+      --accent-purple: #8b5cf6;
+      --accent-cyan: #06b6d4;
+      --accent-emerald: #10b981;
+      --accent-rose: #f43f5e;
+      --accent-amber: #f59e0b;
+      --radius-sm: 8px;
+      --radius-md: 14px;
+      --radius-lg: 20px;
+      --shadow-glow: 0 0 25px rgba(99, 102, 241, 0.25);
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: 'Inter', sans-serif;
+      background-color: var(--bg-primary);
+      background-image: 
+        radial-gradient(circle at 15% 15%, rgba(99, 102, 241, 0.12) 0%, transparent 40%),
+        radial-gradient(circle at 85% 85%, rgba(139, 92, 246, 0.1) 0%, transparent 40%);
+      color: var(--text-main);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      overflow-x: hidden;
+    }
+
+    /* Header */
+    header {
+      background: rgba(11, 16, 27, 0.85);
+      backdrop-filter: blur(16px);
+      border-bottom: 1px solid var(--border-color);
+      padding: 0.85rem 1.75rem;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      position: sticky;
+      top: 0;
+      z-index: 50;
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+    }
+
+    .brand-icon {
+      width: 36px;
+      height: 36px;
+      border-radius: var(--radius-sm);
+      background: linear-gradient(135deg, var(--accent-indigo), var(--accent-purple));
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 4px 12px rgba(99, 102, 241, 0.4);
+    }
+
+    .brand-icon svg {
+      width: 20px;
+      height: 20px;
+      fill: #ffffff;
+    }
+
+    .brand-text h1 {
+      font-family: 'Outfit', sans-serif;
+      font-size: 1.15rem;
+      font-weight: 700;
+      letter-spacing: -0.02em;
+      background: linear-gradient(90deg, #ffffff, #cbd5e1);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    .badge-version {
+      font-size: 0.7rem;
+      font-weight: 600;
+      padding: 0.15rem 0.45rem;
+      background: rgba(99, 102, 241, 0.15);
+      color: #a5b4fc;
+      border: 1px solid rgba(99, 102, 241, 0.3);
+      border-radius: 9999px;
+      margin-left: 0.5rem;
+    }
+
+    .header-status-group {
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+    }
+
+    .status-pill {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      padding: 0.35rem 0.8rem;
+      background: rgba(30, 41, 59, 0.6);
+      border: 1px solid var(--border-color);
+      border-radius: 9999px;
+      font-size: 0.8rem;
+      font-weight: 500;
+      transition: all 0.2s ease;
+    }
+
+    .status-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: var(--text-muted);
+      position: relative;
+    }
+
+    .status-dot.ok {
+      background: var(--accent-emerald);
+      box-shadow: 0 0 8px var(--accent-emerald);
+    }
+
+    .status-dot.error {
+      background: var(--accent-rose);
+      box-shadow: 0 0 8px var(--accent-rose);
+    }
+
+    .status-dot.pending {
+      background: var(--accent-amber);
+      animation: pulse 1.5s infinite;
+    }
+
+    @keyframes pulse {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.4; }
+    }
+
+    /* Main Container */
+    .app-container {
+      display: grid;
+      grid-template-columns: 340px 1fr;
+      flex: 1;
+      height: calc(100vh - 65px);
+      overflow: hidden;
+    }
+
+    /* Sidebar */
+    .sidebar {
+      background: rgba(15, 23, 42, 0.65);
+      border-right: 1px solid var(--border-color);
+      padding: 1.5rem;
+      display: flex;
+      flex-direction: column;
+      gap: 1.5rem;
+      overflow-y: auto;
+    }
+
+    .panel-section {
+      background: var(--bg-card);
+      border: 1px solid var(--border-color);
+      border-radius: var(--radius-md);
+      padding: 1.15rem;
+      display: flex;
+      flex-direction: column;
+      gap: 0.85rem;
+    }
+
+    .section-title {
+      font-family: 'Outfit', sans-serif;
+      font-size: 0.85rem;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: #94a3b8;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .form-group {
+      display: flex;
+      flex-direction: column;
+      gap: 0.35rem;
+    }
+
+    .form-label {
+      font-size: 0.75rem;
+      font-weight: 500;
+      color: #cbd5e1;
+    }
+
+    .input-wrapper {
+      position: relative;
+      display: flex;
+      align-items: center;
+    }
+
+    .form-input {
+      width: 100%;
+      background: rgba(15, 23, 42, 0.8);
+      border: 1px solid var(--border-color);
+      border-radius: var(--radius-sm);
+      color: #f1f5f9;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.82rem;
+      padding: 0.55rem 0.75rem;
+      transition: all 0.2s ease;
+    }
+
+    .form-input:focus {
+      outline: none;
+      border-color: var(--accent-indigo);
+      box-shadow: 0 0 0 2px rgba(99, 102, 241, 0.2);
+    }
+
+    .btn-toggle-vis {
+      position: absolute;
+      right: 8px;
+      background: transparent;
+      border: none;
+      color: var(--text-muted);
+      cursor: pointer;
+      padding: 4px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .btn-toggle-vis:hover {
+      color: #ffffff;
+    }
+
+    .metrics-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 0.65rem;
+    }
+
+    .metric-card {
+      background: rgba(15, 23, 42, 0.7);
+      border: 1px solid rgba(255, 255, 255, 0.04);
+      border-radius: var(--radius-sm);
+      padding: 0.75rem;
+      display: flex;
+      flex-direction: column;
+      gap: 0.25rem;
+    }
+
+    .metric-label {
+      font-size: 0.7rem;
+      color: var(--text-muted);
+    }
+
+    .metric-val {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 1rem;
+      font-weight: 600;
+      color: var(--accent-cyan);
+    }
+
+    .metric-val.tokens {
+      color: #c084fc;
+    }
+
+    .metric-val.turns {
+      color: #38bdf8;
+    }
+
+    .quick-prompts {
+      display: flex;
+      flex-direction: column;
+      gap: 0.5rem;
+    }
+
+    .prompt-chip {
+      background: rgba(30, 41, 59, 0.5);
+      border: 1px solid var(--border-color);
+      border-radius: var(--radius-sm);
+      padding: 0.5rem 0.75rem;
+      font-size: 0.78rem;
+      color: #cbd5e1;
+      text-align: left;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      line-height: 1.35;
+    }
+
+    .prompt-chip:hover {
+      background: rgba(99, 102, 241, 0.15);
+      border-color: rgba(99, 102, 241, 0.35);
+      color: #ffffff;
+      transform: translateX(3px);
+    }
+
+    /* Chat Area */
+    .chat-area {
+      display: flex;
+      flex-direction: column;
+      height: 100%;
+      position: relative;
+    }
+
+    .messages-container {
+      flex: 1;
+      overflow-y: auto;
+      padding: 1.75rem 2.5rem;
+      display: flex;
+      flex-direction: column;
+      gap: 1.25rem;
+    }
+
+    .welcome-hero {
+      margin: auto 0;
+      text-align: center;
+      max-width: 580px;
+      align-self: center;
+      padding: 2.5rem 1.5rem;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 1rem;
+    }
+
+    .hero-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+      font-size: 0.8rem;
+      font-weight: 600;
+      padding: 0.35rem 0.85rem;
+      background: rgba(99, 102, 241, 0.1);
+      border: 1px solid rgba(99, 102, 241, 0.25);
+      border-radius: 9999px;
+      color: #a5b4fc;
+    }
+
+    .hero-title {
+      font-family: 'Outfit', sans-serif;
+      font-size: 2.25rem;
+      font-weight: 800;
+      letter-spacing: -0.03em;
+      line-height: 1.2;
+      background: linear-gradient(135deg, #ffffff 0%, #cbd5e1 50%, #818cf8 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    .hero-desc {
+      font-size: 0.95rem;
+      line-height: 1.6;
+      color: var(--text-muted);
+    }
+
+    /* Message Bubbles */
+    .message-row {
+      display: flex;
+      gap: 0.85rem;
+      max-width: 82%;
+      animation: fadeIn 0.3s ease forwards;
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(8px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    .message-row.user {
+      align-self: flex-end;
+      flex-direction: row-reverse;
+    }
+
+    .message-row.assistant {
+      align-self: flex-start;
+    }
+
+    .avatar {
+      width: 32px;
+      height: 32px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 0.8rem;
+      font-weight: 700;
+      flex-shrink: 0;
+    }
+
+    .avatar.user-avt {
+      background: linear-gradient(135deg, #3b82f6, #06b6d4);
+      color: white;
+    }
+
+    .avatar.agent-avt {
+      background: linear-gradient(135deg, var(--accent-indigo), var(--accent-purple));
+      color: white;
+      box-shadow: 0 2px 10px rgba(99, 102, 241, 0.35);
+    }
+
+    .message-bubble {
+      padding: 0.95rem 1.25rem;
+      border-radius: var(--radius-md);
+      font-size: 0.92rem;
+      line-height: 1.6;
+      position: relative;
+    }
+
+    .message-row.user .message-bubble {
+      background: linear-gradient(135deg, #4f46e5, #4338ca);
+      color: #ffffff;
+      border-bottom-right-radius: 4px;
+      box-shadow: 0 4px 15px rgba(79, 70, 229, 0.25);
+    }
+
+    .message-row.assistant .message-bubble {
+      background: var(--bg-card);
+      border: 1px solid var(--border-color);
+      color: #e2e8f0;
+      border-bottom-left-radius: 4px;
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
+    }
+
+    .message-meta {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      margin-top: 0.5rem;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.7rem;
+      color: #64748b;
+    }
+
+    .meta-tag {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.25rem;
+    }
+
+    .meta-tag.cost {
+      color: var(--accent-cyan);
+    }
+
+    /* Input Footer */
+    .chat-input-bar {
+      padding: 1rem 2.5rem 1.5rem;
+      background: rgba(11, 16, 27, 0.85);
+      backdrop-filter: blur(16px);
+      border-top: 1px solid var(--border-color);
+    }
+
+    .input-box-wrapper {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      background: rgba(15, 23, 42, 0.9);
+      border: 1px solid var(--border-color);
+      border-radius: var(--radius-md);
+      padding: 0.4rem 0.6rem 0.4rem 1.15rem;
+      transition: all 0.2s ease;
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
+    }
+
+    .input-box-wrapper:focus-within {
+      border-color: var(--accent-indigo);
+      box-shadow: 0 0 0 2px rgba(99, 102, 241, 0.25);
+    }
+
+    .chat-textarea {
+      flex: 1;
+      background: transparent;
+      border: none;
+      color: #ffffff;
+      font-family: inherit;
+      font-size: 0.95rem;
+      resize: none;
+      max-height: 120px;
+      min-height: 24px;
+      line-height: 1.5;
+    }
+
+    .chat-textarea:focus {
+      outline: none;
+    }
+
+    .chat-textarea::placeholder {
+      color: #64748b;
+    }
+
+    .btn-send {
+      width: 40px;
+      height: 40px;
+      border-radius: var(--radius-sm);
+      background: linear-gradient(135deg, var(--accent-indigo), var(--accent-purple));
+      border: none;
+      color: white;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: all 0.2s ease;
+      box-shadow: 0 2px 10px rgba(99, 102, 241, 0.35);
+      flex-shrink: 0;
+    }
+
+    .btn-send:hover:not(:disabled) {
+      transform: scale(1.05);
+      box-shadow: 0 4px 15px rgba(99, 102, 241, 0.5);
+    }
+
+    .btn-send:disabled {
+      opacity: 0.4;
+      cursor: not-allowed;
+    }
+
+    .btn-send svg {
+      width: 18px;
+      height: 18px;
+      fill: currentColor;
+    }
+
+    /* Toast Notification */
+    .toast-container {
+      position: fixed;
+      bottom: 24px;
+      right: 24px;
+      display: flex;
+      flex-direction: column;
+      gap: 0.5rem;
+      z-index: 100;
+    }
+
+    .toast {
+      background: rgba(17, 24, 39, 0.95);
+      border: 1px solid var(--border-color);
+      border-radius: var(--radius-sm);
+      padding: 0.85rem 1.25rem;
+      font-size: 0.85rem;
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+      backdrop-filter: blur(12px);
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      animation: slideIn 0.3s ease forwards;
+    }
+
+    @keyframes slideIn {
+      from { transform: translateX(100%); opacity: 0; }
+      to { transform: translateX(0); opacity: 1; }
+    }
+
+    .toast.error {
+      border-left: 4px solid var(--accent-rose);
+      color: #fecdd3;
+    }
+
+    .toast.success {
+      border-left: 4px solid var(--accent-emerald);
+      color: #a7f3d0;
+    }
+
+    .toast.warning {
+      border-left: 4px solid var(--accent-amber);
+      color: #fef3c7;
+    }
+
+    /* Typing indicator */
+    .typing-indicator {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      padding: 4px 8px;
+    }
+
+    .typing-dot {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: #818cf8;
+      animation: typing 1.4s infinite ease-in-out;
+    }
+
+    .typing-dot:nth-child(2) { animation-delay: 0.2s; }
+    .typing-dot:nth-child(3) { animation-delay: 0.4s; }
+
+    @keyframes typing {
+      0%, 80%, 100% { transform: translateY(0); opacity: 0.4; }
+      40% { transform: translateY(-6px); opacity: 1; }
+    }
+
+    @media (max-width: 860px) {
+      .app-container {
+        grid-template-columns: 1fr;
+      }
+      .sidebar {
+        display: none;
+      }
+      .messages-container {
+        padding: 1rem;
+      }
+      .chat-input-bar {
+        padding: 0.75rem 1rem 1rem;
+      }
+    }
+  </style>
+</head>
+<body>
+  <!-- Header -->
+  <header>
+    <div class="brand">
+      <div class="brand-icon">
+        <svg viewBox="0 0 24 24"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/></svg>
+      </div>
+      <div class="brand-text">
+        <h1>Cloud AI Agent Console <span class="badge-version">v1.0.0</span></h1>
+      </div>
+    </div>
+
+    <div class="header-status-group">
+      <div class="status-pill" id="pill-liveness" title="Liveness probe: /health">
+        <span class="status-dot pending" id="dot-liveness"></span>
+        <span>Liveness: <strong id="txt-liveness">Checking...</strong></span>
+      </div>
+      <div class="status-pill" id="pill-readiness" title="Readiness probe: /ready (Redis)">
+        <span class="status-dot pending" id="dot-readiness"></span>
+        <span>Readiness: <strong id="txt-readiness">Checking...</strong></span>
+      </div>
+    </div>
+  </header>
+
+  <!-- App Body -->
+  <div class="app-container">
+    <!-- Sidebar -->
+    <aside class="sidebar">
+      <!-- Target Server -->
+      <div class="panel-section">
+        <div class="section-title">
+          <span>Target Endpoint</span>
+          <button id="btn-ping" style="background:transparent;border:none;color:var(--accent-indigo);cursor:pointer;font-size:0.75rem;font-weight:600;">Refresh</button>
+        </div>
+        <div class="form-group">
+          <input type="text" id="input-base-url" class="form-input" placeholder="http://localhost:8000" />
+        </div>
+        <div style="display:flex;gap:0.5rem;">
+          <button class="prompt-chip" style="flex:1;text-align:center;padding:0.4rem;" onclick="setEndpoint(window.location.origin.includes('http') ? window.location.origin : 'http://localhost:8000')">Origin / Local</button>
+          <button class="prompt-chip" style="flex:1;text-align:center;padding:0.4rem;" onclick="setEndpoint('https://k4-l3b-day12-lequangthanh-2a202602647.onrender.com')">Render Cloud</button>
+        </div>
+      </div>
+
+      <!-- Authentication -->
+      <div class="panel-section">
+        <div class="section-title">
+          <span>Security & Identity</span>
+        </div>
+        <div class="form-group">
+          <label class="form-label" for="input-api-key">X-API-Key</label>
+          <div class="input-wrapper">
+            <input type="password" id="input-api-key" class="form-input" placeholder="Nhập API Key của bạn..." value="ua3VwdFTbLNDK8uayiXD18kH3Y-x9pMF7-Bj8j4DAlM" />
+            <button type="button" class="btn-toggle-vis" id="btn-toggle-key" title="Ẩn / Hiện key">
+              <svg id="eye-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+            </button>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label" for="input-user-id">X-User-Id</label>
+          <input type="text" id="input-user-id" class="form-input" value="sv01" placeholder="User ID để tính quota & cost..." />
+        </div>
+      </div>
+
+      <!-- Analytics Tracker -->
+      <div class="panel-section">
+        <div class="section-title">
+          <span>Session Usage</span>
+          <button id="btn-reset-stats" style="background:transparent;border:none;color:#64748b;cursor:pointer;font-size:0.75rem;">Reset</button>
+        </div>
+        <div class="metrics-grid">
+          <div class="metric-card">
+            <span class="metric-label">Chi Phí (USD)</span>
+            <span class="metric-val" id="metric-cost">$0.00000</span>
+          </div>
+          <div class="metric-card">
+            <span class="metric-label">Tổng Tokens</span>
+            <span class="metric-val tokens" id="metric-tokens">0</span>
+          </div>
+          <div class="metric-card">
+            <span class="metric-label">Số Lượt Hỏi</span>
+            <span class="metric-val turns" id="metric-requests">0</span>
+          </div>
+          <div class="metric-card">
+            <span class="metric-label">Lịch Sử Redis</span>
+            <span class="metric-val" id="metric-history" style="color:#e2e8f0;">0 msg</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Quick prompts -->
+      <div class="panel-section" style="flex:1;">
+        <div class="section-title">
+          <span>Câu Hỏi Mẫu</span>
+        </div>
+        <div class="quick-prompts">
+          <button class="prompt-chip" onclick="askPreset('Docker là gì và tại sao cần multi-stage build?')">📦 Docker & Multi-stage Build</button>
+          <button class="prompt-chip" onclick="askPreset('Tại sao ứng dụng phải Stateless khi scale nhiều container?')">🔄 Stateless Architecture</button>
+          <button class="prompt-chip" onclick="askPreset('Khác nhau giữa /health (Liveness) và /ready (Readiness)?')">🩺 Liveness vs Readiness</button>
+          <button class="prompt-chip" onclick="askPreset('Cửa sổ trượt (sliding window) khắc phục lỗ hổng gì của rate limit cố định?')">⏱️ Sliding Window Rate Limit</button>
+        </div>
+      </div>
+    </aside>
+
+    <!-- Chat Area -->
+    <main class="chat-area">
+      <div class="messages-container" id="messages-feed">
+        <div class="welcome-hero" id="welcome-hero">
+          <div class="hero-badge">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
+            <span>Cloud & Deployment Ready</span>
+          </div>
+          <h2 class="hero-title">AI Agent Service Console</h2>
+          <p class="hero-desc">
+            Trải nghiệm dịch vụ AI Agent được đóng gói Docker, bảo vệ bởi API Authentication, Rate Limiting (Sliding Window), và Cost Guard kiểm soát ngân sách token thời gian thực.
+          </p>
+        </div>
+      </div>
+
+      <!-- Input bar -->
+      <div class="chat-input-bar">
+        <div class="input-box-wrapper">
+          <textarea
+            id="chat-input"
+            class="chat-textarea"
+            rows="1"
+            placeholder="Hỏi agent bất cứ điều gì... (Enter để gửi, Shift+Enter xuống dòng)"
+          ></textarea>
+          <button id="btn-send" class="btn-send" title="Gửi câu hỏi" disabled>
+            <svg viewBox="0 0 24 24"><path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/></svg>
+          </button>
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <div class="toast-container" id="toast-container"></div>
+
+  <script>
+    // State management
+    const state = {
+      baseUrl: window.location.origin.startsWith('http') ? window.location.origin : 'http://localhost:8000',
+      totalCost: 0,
+      totalTokens: 0,
+      requestCount: 0,
+      lastHistoryLength: 0,
+      isSubmitting: false,
+    };
+
+    // DOM Elements
+    const inputBaseUrl = document.getElementById('input-base-url');
+    const inputApiKey = document.getElementById('input-api-key');
+    const inputUserId = document.getElementById('input-user-id');
+    const btnToggleKey = document.getElementById('btn-toggle-key');
+    const chatInput = document.getElementById('chat-input');
+    const btnSend = document.getElementById('btn-send');
+    const messagesFeed = document.getElementById('messages-feed');
+    const welcomeHero = document.getElementById('welcome-hero');
+    const toastContainer = document.getElementById('toast-container');
+    const btnPing = document.getElementById('btn-ping');
+    const btnResetStats = document.getElementById('btn-reset-stats');
+
+    // Metrics elements
+    const metricCost = document.getElementById('metric-cost');
+    const metricTokens = document.getElementById('metric-tokens');
+    const metricRequests = document.getElementById('metric-requests');
+    const metricHistory = document.getElementById('metric-history');
+
+    // Status elements
+    const txtLiveness = document.getElementById('txt-liveness');
+    const dotLiveness = document.getElementById('dot-liveness');
+    const txtReadiness = document.getElementById('txt-readiness');
+    const dotReadiness = document.getElementById('dot-readiness');
+
+    // Init
+    inputBaseUrl.value = state.baseUrl;
+
+    function setEndpoint(url) {
+      state.baseUrl = url.replace(/\/$/, '');
+      inputBaseUrl.value = state.baseUrl;
+      checkHealthAndReady();
+      showToast(`Đã chuyển target sang: ${state.baseUrl}`, 'success');
+    }
+
+    inputBaseUrl.addEventListener('change', () => {
+      state.baseUrl = inputBaseUrl.value.trim().replace(/\/$/, '');
+      checkHealthAndReady();
+    });
+
+    btnToggleKey.addEventListener('click', () => {
+      const type = inputApiKey.getAttribute('type') === 'password' ? 'text' : 'password';
+      inputApiKey.setAttribute('type', type);
+    });
+
+    chatInput.addEventListener('input', () => {
+      chatInput.style.height = 'auto';
+      chatInput.style.height = Math.min(chatInput.scrollHeight, 120) + 'px';
+      btnSend.disabled = chatInput.value.trim().length === 0 || state.isSubmitting;
+    });
+
+    chatInput.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter' && !e.shiftKey) {
+        e.preventDefault();
+        if (!btnSend.disabled) sendMessage();
+      }
+    });
+
+    btnSend.addEventListener('click', sendMessage);
+    btnPing.addEventListener('click', checkHealthAndReady);
+
+    btnResetStats.addEventListener('click', () => {
+      state.totalCost = 0;
+      state.totalTokens = 0;
+      state.requestCount = 0;
+      state.lastHistoryLength = 0;
+      updateMetrics();
+      showToast('Đã đặt lại bộ đếm chi phí!', 'success');
+    });
+
+    function askPreset(question) {
+      chatInput.value = question;
+      chatInput.dispatchEvent(new Event('input'));
+      chatInput.focus();
+    }
+
+    // Health & Ready probe checks
+    async function checkHealthAndReady() {
+      // 1. Check Liveness (/health)
+      dotLiveness.className = 'status-dot pending';
+      txtLiveness.textContent = 'Checking...';
+      try {
+        const res = await fetch(`${state.baseUrl}/health`);
+        if (res.ok) {
+          const data = await res.json();
+          dotLiveness.className = 'status-dot ok';
+          txtLiveness.textContent = '200 OK';
+        } else {
+          dotLiveness.className = 'status-dot error';
+          txtLiveness.textContent = `${res.status} Error`;
+        }
+      } catch (err) {
+        dotLiveness.className = 'status-dot error';
+        txtLiveness.textContent = 'Offline';
+      }
+
+      // 2. Check Readiness (/ready)
+      dotReadiness.className = 'status-dot pending';
+      txtReadiness.textContent = 'Checking...';
+      try {
+        const res = await fetch(`${state.baseUrl}/ready`);
+        if (res.ok) {
+          const data = await res.json();
+          dotReadiness.className = 'status-dot ok';
+          txtReadiness.textContent = '200 Ready';
+        } else if (res.status === 503) {
+          dotReadiness.className = 'status-dot error';
+          txtReadiness.textContent = '503 (No Redis)';
+        } else {
+          dotReadiness.className = 'status-dot error';
+          txtReadiness.textContent = `${res.status} Error`;
+        }
+      } catch (err) {
+        dotReadiness.className = 'status-dot error';
+        txtReadiness.textContent = 'Offline';
+      }
+    }
+
+    // Message sending logic
+    async function sendMessage() {
+      const question = chatInput.value.trim();
+      const apiKey = inputApiKey.value.trim();
+      const userId = inputUserId.value.trim() || 'anonymous';
+
+      if (!question || state.isSubmitting) return;
+
+      if (welcomeHero) welcomeHero.style.display = 'none';
+
+      // Append user bubble
+      appendMessage('user', question);
+      chatInput.value = '';
+      chatInput.style.height = 'auto';
+      btnSend.disabled = true;
+      state.isSubmitting = true;
+
+      // Append typing indicator
+      const typingEl = appendTypingIndicator();
+
+      try {
+        const headers = {
+          'Content-Type': 'application/json',
+          'X-User-Id': userId,
+        };
+        if (apiKey) {
+          headers['X-API-Key'] = apiKey;
+        }
+
+        const response = await fetch(`${state.baseUrl}/ask`, {
+          method: 'POST',
+          headers,
+          body: JSON.stringify({ question }),
+        });
+
+        typingEl.remove();
+
+        if (response.status === 200) {
+          const data = await response.json();
+          // data: { answer, user_id, history_length, cost_usd, tokens: { in, out } }
+          appendMessage('assistant', data.answer, {
+            cost: data.cost_usd,
+            tokensIn: data.tokens ? data.tokens.in : 0,
+            tokensOut: data.tokens ? data.tokens.out : 0,
+            historyLength: data.history_length,
+          });
+
+          // Update metrics
+          state.totalCost += (data.cost_usd || 0);
+          state.totalTokens += ((data.tokens?.in || 0) + (data.tokens?.out || 0));
+          state.requestCount += 1;
+          state.lastHistoryLength = data.history_length || 0;
+          updateMetrics();
+
+        } else if (response.status === 401) {
+          appendMessage('assistant', '⚠️ **Lỗi 401 Unauthorized**: API Key bị thiếu hoặc không chính xác. Vui lòng kiểm tra lại trường `X-API-Key` ở thanh cài đặt bên trái.');
+          showToast('401: Invalid or missing API key', 'error');
+        } else if (response.status === 429) {
+          const retryAfter = response.headers.get('Retry-After') || '60';
+          appendMessage('assistant', `⏳ **Lỗi 429 Too Many Requests**: Bạn đã gọi vượt quá giới hạn Rate Limit (10 request/phút). Vui lòng thử lại sau ${retryAfter} giây.`);
+          showToast(`429: Rate limit exceeded (Retry-After: ${retryAfter}s)`, 'warning');
+        } else if (response.status === 402) {
+          appendMessage('assistant', '💳 **Lỗi 402 Payment Required**: Người dùng này đã dùng hết ngân sách hàng tháng ($10 USD). Cost Guard đã chặn request để bảo vệ ví của bạn!');
+          showToast('402: Monthly budget exceeded!', 'error');
+        } else {
+          const errorText = await response.text();
+          appendMessage('assistant', `❌ **Lỗi ${response.status}**: ${errorText || 'Server error'}`);
+          showToast(`Lỗi HTTP ${response.status}`, 'error');
+        }
+      } catch (err) {
+        typingEl.remove();
+        appendMessage('assistant', `🔌 **Lỗi kết nối**: Không thể gửi request tới ${state.baseUrl}. Vui lòng kiểm tra xem server có đang chạy không.`);
+        showToast('Không thể kết nối tới server!', 'error');
+      } finally {
+        state.isSubmitting = false;
+        btnSend.disabled = chatInput.value.trim().length === 0;
+        chatInput.focus();
+      }
+    }
+
+    function appendMessage(role, text, meta = null) {
+      const row = document.createElement('div');
+      row.className = `message-row ${role}`;
+
+      const avatar = document.createElement('div');
+      avatar.className = `avatar ${role === 'user' ? 'user-avt' : 'agent-avt'}`;
+      avatar.innerHTML = role === 'user' 
+        ? '<svg width="16" height="16" fill="currentColor" viewBox="0 0 24 24"><path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/></svg>'
+        : '<svg width="16" height="16" fill="currentColor" viewBox="0 0 24 24"><path d="M12 2a2 2 0 0 1 2 2c0 .74-.4 1.39-1 1.73V7h1a7 7 0 0 1 7 7h1a1 1 0 0 1 1 1v3a1 1 0 0 1-1 1h-1v1a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-1H2a1 1 0 0 1-1-1v-3a1 1 0 0 1 1-1h1a7 7 0 0 1 7-7h1V5.73c-.6-.34-1-.99-1-1.73a2 2 0 0 1 2-2zM7.5 13a1.5 1.5 0 1 0 0 3 1.5 1.5 0 0 0 0-3zm9 0a1.5 1.5 0 1 0 0 3 1.5 1.5 0 0 0 0-3z"/></svg>';
+
+      const bubble = document.createElement('div');
+      bubble.className = 'message-bubble';
+      bubble.innerHTML = formatMarkdown(text);
+
+      if (meta) {
+        const metaEl = document.createElement('div');
+        metaEl.className = 'message-meta';
+        metaEl.innerHTML = `
+          <span class="meta-tag cost">💰 $${meta.cost.toFixed(5)}</span>
+          <span class="meta-tag">⚡ ${meta.tokensIn} in / ${meta.tokensOut} out</span>
+          <span class="meta-tag">📚 Turn ${meta.historyLength}</span>
+        `;
+        bubble.appendChild(metaEl);
+      }
+
+      row.appendChild(avatar);
+      row.appendChild(bubble);
+      messagesFeed.appendChild(row);
+      messagesFeed.scrollTop = messagesFeed.scrollHeight;
+    }
+
+    function appendTypingIndicator() {
+      const row = document.createElement('div');
+      row.className = 'message-row assistant';
+
+      const avatar = document.createElement('div');
+      avatar.className = 'avatar agent-avt';
+      avatar.innerHTML = '<svg width="16" height="16" fill="currentColor" viewBox="0 0 24 24"><path d="M12 2a2 2 0 0 1 2 2v3h1a7 7 0 0 1 7 7v4a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2v-4a7 7 0 0 1 7-7h1V4a2 2 0 0 1 2-2z"/></svg>';
+
+      const bubble = document.createElement('div');
+      bubble.className = 'message-bubble';
+      bubble.innerHTML = `
+        <div class="typing-indicator">
+          <div class="typing-dot"></div>
+          <div class="typing-dot"></div>
+          <div class="typing-dot"></div>
+        </div>
+      `;
+
+      row.appendChild(avatar);
+      row.appendChild(bubble);
+      messagesFeed.appendChild(row);
+      messagesFeed.scrollTop = messagesFeed.scrollHeight;
+      return row;
+    }
+
+    function formatMarkdown(text) {
+      return text
+        .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+        .replace(/\*(.*?)\*/g, '<em>$1</em>')
+        .replace(/`(.*?)`/g, '<code style="background:rgba(0,0,0,0.3);padding:2px 5px;border-radius:4px;font-family:\'JetBrains Mono\';font-size:0.85em;">$1</code>')
+        .replace(/\n/g, '<br/>');
+    }
+
+    function updateMetrics() {
+      metricCost.textContent = `$${state.totalCost.toFixed(5)}`;
+      metricTokens.textContent = state.totalTokens.toLocaleString();
+      metricRequests.textContent = state.requestCount;
+      metricHistory.textContent = `${state.lastHistoryLength} turns`;
+    }
+
+    function showToast(message, type = 'info') {
+      const toast = document.createElement('div');
+      toast.className = `toast ${type}`;
+      toast.textContent = message;
+      toastContainer.appendChild(toast);
+      setTimeout(() => {
+        toast.style.opacity = '0';
+        toast.style.transform = 'translateY(10px)';
+        toast.style.transition = 'all 0.3s ease';
+        setTimeout(() => toast.remove(), 300);
+      }, 3500);
+    }
+
+    // Initial check
+    checkHealthAndReady();
+    setInterval(checkHealthAndReady, 12000);
+  </script>
+</body>
+</html>

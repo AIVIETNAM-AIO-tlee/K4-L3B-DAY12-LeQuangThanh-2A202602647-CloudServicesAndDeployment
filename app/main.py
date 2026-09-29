@@ -16,8 +16,11 @@ from __future__ import annotations
 from contextlib import asynccontextmanager
 from functools import lru_cache
 
+from pathlib import Path
+
 from fastapi import Depends, FastAPI
-from fastapi.responses import JSONResponse
+from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import HTMLResponse, JSONResponse
 from pydantic import BaseModel, Field
 
 from utils.mock_llm import ask_llm
@@ -32,6 +35,8 @@ from .store import ConversationStore, get_redis_client
 
 SERVICE_NAME = "day12-agent"
 SERVICE_VERSION = "1.0.0"
+
+STATIC_HTML_FILE = Path(__file__).parent / "static" / "index.html"
 
 
 # ─────────────────────────────────────────────────────────────
@@ -64,6 +69,22 @@ async def lifespan(_app: FastAPI):
 
 
 app = FastAPI(title="Day 12 Production Agent", version=SERVICE_VERSION, lifespan=lifespan)
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+
+@app.get("/", response_class=HTMLResponse)
+def index():
+    """Giao diện điều khiển Web UI cho agent."""
+    if STATIC_HTML_FILE.exists():
+        return STATIC_HTML_FILE.read_text(encoding="utf-8")
+    return "<h1>Day 12 Agent Service</h1><p>API is running.</p>"
 
 
 class AskRequest(BaseModel):
